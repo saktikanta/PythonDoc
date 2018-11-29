@@ -21,7 +21,7 @@ If your script is error free, then there will be no problem on creating applicat
 Check the newly created folder build. It has another folder in it. Within that folder you can find your application. Run it. Make yourself happy.
 
 ### setup.py:
-```
+```python
 from cx_Freeze import setup, Executable
 
 base = None    
@@ -53,7 +53,7 @@ setup(
 * once the .exe gets created and if you get dll issue up on running the executable then, you have to copy the dll into the current directory where you are building the exe.
 
 ### Example:
-```
+```python
 import sys
 import os
 from cx_Freeze import setup, Executable
@@ -87,7 +87,7 @@ setup(
 )
 ```
 # Convertion of .nmon file(Linux) into .csv file
-```
+```python
 import os
 import logging as log
 import datetime
@@ -168,5 +168,90 @@ for stat in detailsData.keys():
                 else:
                     line += "," + col[n]
             outFile.write(line + "\n")
+
+```
+# Import .nmon file into sqlite .db
+```python
+import os
+import logging as log
+import datetime
+import sqlite3
+from sqlite3 import Error
+
+tstamp = {}
+sysInfoA = []
+sysInfoB = []
+detailsData = {}
+tblColDef = ""
+currDir = os.path.dirname(os.path.realpath(__file__))
+fname="C:\\Users\\saktikanta\\test1.nmon"
+outdir= currDir + "\\data\\"
+overwrite=False
+debug=False
+
+conn = sqlite3.connect(currDir+r"\testpysqlite.db")
+print("Opened database successfully")
+
+fo = open(fname, 'r')
+
+for l in fo.readlines():
+    l = l.strip()
+    lar = l.split(',')
+    if "ZZZZ" in lar[0]:
+        tstamp[lar[1]] = lar[3]+" "+lar[2]
+    elif "AAA" in lar[0]:
+        sysInfoA.append(lar)
+    elif "BBB" in lar[0]:
+        sysInfoB.append(lar)
+    elif "TOP" in lar[0] and len(lar) > 3:
+                    # top lines are the only ones that do not have the timestamp
+                    # as the second column, therefore we rearrange for parsing.
+                    # kind of a hack, but so is the rest of this parsing
+                pid = lar[1]
+                lar[1] = lar[2]
+                lar[2] = pid
+    else:
+        if lar[0] in detailsData.keys():
+            getTable = detailsData[lar[0]]
+            insertTableString = "INSERT INTO " + lar[0] + " VALUES ("
+            for n, col in enumerate(getTable):
+                if n == 0 and lar[n + 1] in tstamp.keys():
+                    col.append(tstamp[lar[n + 1]])
+                    insertTableString += "'" + tstamp[lar[n + 1]] + "'"
+                elif n == 0 and lar[n + 1] not in tstamp.keys():
+                    print(lar[n], lar[n + 1],",2nd column is not time a timestamp")
+                    break
+                else:
+                    col.append(lar[n + 1])
+                    insertTableString += "'" + lar[n + 1] + "'"
+                if n != len(getTable)-1:
+                    insertTableString += ","
+            insertTableString += ")"
+            conn.execute(insertTableString);
+        else:
+            heads = []
+            createTableString = "CREATE TABLE IF NOT EXISTS " + lar[0] + "("
+            for h in lar[1:]:
+                # make it an array
+                tmp = []
+                if h == lar[1]:
+                    if 'UARG' in lar[0]:
+                        createTableString += "'DateTime' TEXT NOT NULL"
+                    else:
+                        createTableString += "'DateTime' TEXT PRIMARY KEY   NOT NULL"
+                else:
+                    createTableString += "'" + h + "'" + " TEXT"
+                tmp.append(h)
+                heads.append(tmp)
+                if h != lar[-1]:
+                    createTableString += ",\n"
+            detailsData[lar[0]] = heads
+            createTableString += ");\n"
+            conn.execute(createTableString)
+
+conn.commit()
+conn.close()
+
+fo.close()
 
 ```
