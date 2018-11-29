@@ -255,3 +255,28 @@ conn.close()
 fo.close()
 
 ```
+# Extract imported data from sqlite .db
+### Once the data imported into .db you can extract using select query. Let say I wanted to know the CPU utilization between sme date then you can refer the below pyhon code.
+```python
+import os
+import sqlite3
+from sqlite3 import Error
+
+currDir = os.path.dirname(os.path.realpath(__file__))
+conn = sqlite3.connect(currDir+r"\testpysqlite.db")
+print("Opened database successfully")
+
+tableName="CPU_ALL"
+fromDate='04-SEP-2018 20:40'
+toDate='04-SEP-2018 22:43'
+cursor = conn.execute("SELECT sql FROM sqlite_master WHERE tbl_name = '" + tableName + "' AND type = 'table';")
+for row in cursor:
+    for n in row:
+        print(n, end=' ');
+    print(end='\n')
+cursor = conn.execute("SELECT * FROM " + tableName + " where DateTime between '" + fromDate + "' and '" + toDate + "';")
+for row in cursor:
+    for n in row:
+        print(n, end=' ');
+    print(end='\n')
+```
